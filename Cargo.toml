@@ -1,0 +1,13 @@
+[package]
+name = "marshrutka-gw"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["http2", "macros"] }
+reqwest = { version = "0.12", features = ["gzip", "brotli", "zstd", "deflate", "stream"] }
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
