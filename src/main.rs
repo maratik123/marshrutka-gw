@@ -20,6 +20,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
 const MARSHRUTKA_ORIGIN: &str = "https://maratik123.github.io";
+const LOCALHOST_DEV: &str = "http://127.0.0.1:8080";
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -107,6 +108,10 @@ async fn stream_map_api_response(State(client): State<reqwest::Client>) -> Respo
         headers.insert(
             http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
             HeaderValue::from_static(MARSHRUTKA_ORIGIN),
+        );
+        headers.append(
+            http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
+            HeaderValue::from_static(LOCALHOST_DEV),
         );
     }
     response_builder
