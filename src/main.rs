@@ -60,8 +60,8 @@ async fn main() {
     let client = reqwest::Client::new();
 
     let mut state = AcmeConfig::new(args.domains)
-        .contact(args.email.iter().map(|e| format!("mailto:{e}")))
-        .cache_option(args.cache.clone().map(DirCache::new))
+        .contact(args.email.into_iter().map(|e| format!("mailto:{e}")))
+        .cache_option(args.cache.map(DirCache::new))
         .directory_lets_encrypt(args.prod)
         .state();
     let acceptor = state.axum_acceptor(state.default_rustls_config());
