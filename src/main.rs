@@ -6,7 +6,6 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use axum::{http, BoxError, Router};
 use clap::Parser;
-use reqwest::Client;
 use rustls_acme::caches::DirCache;
 use rustls_acme::AcmeConfig;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -57,7 +56,7 @@ async fn main() {
 
     tokio::spawn(redirect_http_to_https());
 
-    let client = Client::new();
+    let client = reqwest::Client::new();
 
     let mut state = AcmeConfig::new(args.domains)
         .contact(args.email.iter().map(|e| format!("mailto:{e}")))
@@ -92,7 +91,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn stream_map_api_response(State(client): State<Client>) -> Response {
+async fn stream_map_api_response(State(client): State<reqwest::Client>) -> Response {
     let map_api_response = match client.get(MAP_URL).send().await {
         Ok(res) => res,
         Err(err) => {
