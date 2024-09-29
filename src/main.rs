@@ -1,7 +1,7 @@
 use axum::body::{Body, Bytes};
 use axum::extract::{Host, State};
 use axum::handler::HandlerWithoutStateExt;
-use axum::http::{HeaderValue, StatusCode, Uri};
+use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use axum::{http, BoxError, Router};
@@ -92,7 +92,10 @@ async fn main() {
         .unwrap();
 }
 
-async fn stream_map_api_response(State(client): State<reqwest::Client>) -> Response {
+async fn stream_map_api_response(
+    header_map: HeaderMap,
+    State(client): State<reqwest::Client>,
+) -> Response {
     let map_api_response = match client.get(MAP_URL).send().await {
         Ok(res) => res,
         Err(err) => {
@@ -105,14 +108,22 @@ async fn stream_map_api_response(State(client): State<reqwest::Client>) -> Respo
     if let Some(headers) = response_builder.headers_mut() {
         *headers = map_api_response.headers().clone();
         headers.remove(http::header::COOKIE);
-        headers.insert(
-            http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-            HeaderValue::from_static(MARSHRUTKA_ORIGIN),
-        );
-        headers.append(
-            http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-            HeaderValue::from_static(LOCALHOST_DEV),
-        );
+        if let Some(origin_value) = header_map
+            .get_all(http::header::ORIGIN)
+            .iter()
+            .flat_map(|val| val.to_str().ok())
+            .flat_map(|val| {
+                [MARSHRUTKA_ORIGIN, LOCALHOST_DEV]
+                    .into_iter()
+                    .find(|&c_val| c_val == val)
+            })
+            .next()
+        {
+            headers.insert(
+                http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
+                HeaderValue::from_static(origin_value),
+            );
+        }
     }
     response_builder
         .body(Body::from_stream(map_api_response.bytes_stream()))
