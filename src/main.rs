@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
-use tower::{Layer, ServiceBuilder};
+use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Span;
