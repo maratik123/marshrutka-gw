@@ -13,6 +13,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
+use tower::ServiceBuilder;
+use tower_http::compression::CompressionLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Span;
 use tracing_subscriber::layer::SubscriberExt;
@@ -77,11 +79,15 @@ async fn main() {
 
     let app = Router::new()
         .route("/api/chatwars/webview/map", get(stream_map_api_response))
-        .layer(TraceLayer::new_for_http().on_body_chunk(
-            |chunk: &Bytes, _latency: Duration, _span: &Span| {
-                tracing::debug!("streaming {} bytes", chunk.len());
-            },
-        ))
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http().on_body_chunk(
+                    |chunk: &Bytes, _latency: Duration, _span: &Span| {
+                        tracing::debug!("streaming {} bytes", chunk.len());
+                    },
+                ))
+                .layer(CompressionLayer::new()),
+        )
         .with_state(client);
 
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 443);
