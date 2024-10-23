@@ -1,5 +1,5 @@
 use axum::body::{Body, Bytes};
-use axum::extract::{Host, State};
+use axum::extract::{Host, Path, State};
 use axum::handler::HandlerWithoutStateExt;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
@@ -21,6 +21,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
+const MAPS_URL: &str = "https://api.chatwars.me/webview/maps/";
 const MARSHRUTKA_ORIGIN: &str = "https://maratik123.github.io";
 const LOCALHOST_DEV: &str = "http://127.0.0.1:8080";
 
@@ -79,6 +80,10 @@ async fn main() {
 
     let app = Router::new()
         .route("/api/chatwars/webview/map", get(stream_map_api_response))
+        .route(
+            "/api/chatwars/webview/map/:id",
+            get(stream_maps_api_response),
+        )
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http().on_body_chunk(
@@ -102,7 +107,25 @@ async fn stream_map_api_response(
     header_map: HeaderMap,
     State(client): State<reqwest::Client>,
 ) -> Response {
-    let map_api_response = match client.get(MAP_URL).send().await {
+    common_proxy_response(client.get(MAP_URL).send().await, header_map)
+}
+
+async fn stream_maps_api_response(
+    header_map: HeaderMap,
+    Path(id): Path<String>,
+    State(client): State<reqwest::Client>,
+) -> Response {
+    common_proxy_response(
+        client.get(format!("{MAPS_URL}{id}")).send().await,
+        header_map,
+    )
+}
+
+fn common_proxy_response(
+    response: Result<reqwest::Response, reqwest::Error>,
+    header_map: HeaderMap,
+) -> Response {
+    let map_api_response = match response {
         Ok(res) => res,
         Err(err) => {
             tracing::error!(%err, "request failed");
