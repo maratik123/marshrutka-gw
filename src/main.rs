@@ -8,8 +8,10 @@ use axum::{http, BoxError, Router};
 use clap::Parser;
 use rustls_acme::caches::DirCache;
 use rustls_acme::AcmeConfig;
+use std::collections::HashSet;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
@@ -22,8 +24,15 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
 const MAPS_URL: &str = "https://api.chatwars.me/webview/maps/";
-const MARSHRUTKA_ORIGIN: &str = "https://maratik123.github.io";
-const LOCALHOST_DEV: &str = "http://127.0.0.1:8080";
+static ALLOWED_ORIGINS: LazyLock<HashSet<&str>> = LazyLock::new(|| {
+    HashSet::from([
+        "https://maratik123.github.io",
+        "http://127.0.0.1:8080",
+        "http://[::1]:8080",
+        "http://localhost:8080",
+        "http://localhost.:8080",
+    ])
+});
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -141,12 +150,7 @@ fn common_proxy_response(
             .get_all(http::header::ORIGIN)
             .iter()
             .flat_map(|val| val.to_str().ok())
-            .flat_map(|val| {
-                [MARSHRUTKA_ORIGIN, LOCALHOST_DEV]
-                    .into_iter()
-                    .find(|&c_val| c_val == val)
-            })
-            .next()
+            .find_map(|val| ALLOWED_ORIGINS.get(val))
         {
             headers.insert(
                 http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
