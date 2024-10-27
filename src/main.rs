@@ -90,7 +90,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/chatwars/webview/map", get(stream_map_api_response))
         .route(
-            "/api/chatwars/webview/map/:id",
+            "/api/chatwars/webview/maps/:id",
             get(stream_maps_api_response),
         )
         .layer(
@@ -148,8 +148,8 @@ fn common_proxy_response(
         headers.remove(http::header::COOKIE);
         if let Some(origin_value) = header_map
             .get_all(http::header::ORIGIN)
-            .iter()
-            .flat_map(|val| val.to_str().ok())
+            .into_iter()
+            .filter_map(|val| val.to_str().ok())
             .find_map(|val| ALLOWED_ORIGINS.get(val))
         {
             headers.insert(
