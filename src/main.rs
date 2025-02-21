@@ -80,7 +80,8 @@ async fn main() {
 
     tokio::spawn(async move {
         loop {
-            match state.next().await.unwrap() {
+            let state = state.next().await;
+            match state.unwrap() {
                 Ok(ok) => tracing::info!("event: {:?}", ok),
                 Err(err) => tracing::error!("error: {:?}", err),
             }
