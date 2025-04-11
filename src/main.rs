@@ -4,8 +4,10 @@ use axum::handler::HandlerWithoutStateExt;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
-use axum::{BoxError, Router, http};
+use axum::{BoxError, Router, ServiceExt, http};
+use axum_client_ip::{ClientIp, ClientIpSource};
 use axum_extra::extract::Host;
+use axum_response_cache::CacheLayer;
 use clap::Parser;
 use rustls_acme::AcmeConfig;
 use rustls_acme::caches::DirCache;
@@ -24,6 +26,9 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
+const LOCAL_HOST: &str = "https://maratik.fyi";
+const MAP_ROUTE: &str = "/api/chatwars/webview/map";
+
 static ALLOWED_ORIGINS: LazyLock<HashSet<&str>> = LazyLock::new(|| {
     HashSet::from([
         "https://maratik123.github.io",
@@ -44,7 +49,7 @@ struct Args {
     #[clap(short)]
     email: Vec<String>,
 
-    /// Cache directory
+    /// Cert cache directory
     #[clap(short)]
     cache: Option<PathBuf>,
 
@@ -89,22 +94,41 @@ async fn main() {
     });
 
     let app = Router::new()
-        .route("/api/chatwars/webview/map", get(stream_map_api_response))
+        .route(MAP_ROUTE, get(stream_map_api_response))
         .layer(
             ServiceBuilder::new()
+                .layer(ClientIpSource::ConnectInfo.into_extension())
                 .layer(TraceLayer::new_for_http().on_body_chunk(
                     |chunk: &Bytes, _latency: Duration, _span: &Span| {
                         tracing::debug!("streaming {} bytes", chunk.len());
                     },
                 ))
-                .layer(CompressionLayer::new()),
+                .layer(CompressionLayer::new())
+                .layer(
+                    CacheLayer::with_lifespan(0)
+                        .add_response_headers()
+                        .use_stale_on_failure(),
+                ),
         )
-        .with_state(client);
+        .with_state(client.clone());
+
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        let url = format!("{LOCAL_HOST}{MAP_ROUTE}");
+
+        loop {
+            interval.tick().await;
+            match client.get(url.as_str()).send().await {
+                Ok(_) => tracing::info!("ping successful"),
+                Err(_) => tracing::error!("ping failed"),
+            }
+        }
+    });
 
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 443);
     axum_server::bind(addr)
         .acceptor(acceptor)
-        .serve(app.into_make_service())
+        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 }
@@ -112,7 +136,9 @@ async fn main() {
 async fn stream_map_api_response(
     header_map: HeaderMap,
     State(client): State<reqwest::Client>,
+    ClientIp(ip): ClientIp,
 ) -> Response {
+    tracing::info!(%ip, "request received");
     common_proxy_response(client.get(MAP_URL).send().await, header_map)
 }
 
