@@ -18,8 +18,8 @@ use std::sync::LazyLock;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
-use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
+use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use tracing::Span;
 use tracing_subscriber::layer::SubscriberExt;
@@ -117,20 +117,18 @@ async fn main() {
 
     let app = Router::new()
         .route(MAP_ROUTE, get(stream_map_api_response))
+        .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(
-            ServiceBuilder::new()
-                .layer(TraceLayer::new_for_http().on_body_chunk(
-                    |chunk: &Bytes, _latency: Duration, _span: &Span| {
-                        tracing::debug!("streaming {} bytes", chunk.len());
-                    },
-                ))
-                .layer(CompressionLayer::new())
-                .layer(
-                    CacheLayer::with_lifespan(0)
-                        .add_response_headers()
-                        .use_stale_on_failure(),
-                ),
+            CacheLayer::with_lifespan(0)
+                .add_response_headers()
+                .use_stale_on_failure(),
         )
+        .layer(TraceLayer::new_for_http().on_body_chunk(
+            |chunk: &Bytes, _latency: Duration, _span: &Span| {
+                tracing::debug!("streaming {} bytes", chunk.len());
+            },
+        ))
+        .layer(CompressionLayer::new())
         .with_state(client.clone());
 
     if let Some(self_url) = args.self_url {
