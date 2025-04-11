@@ -138,11 +138,11 @@ async fn main() {
             let url = format!("{self_url}{MAP_ROUTE}");
 
             loop {
+                interval.tick().await;
                 match client.get(url.as_str()).send().await {
                     Ok(_) => tracing::info!("ping successful"),
                     Err(_) => tracing::error!("ping failed"),
                 };
-                interval.tick().await;
             }
         });
     }
