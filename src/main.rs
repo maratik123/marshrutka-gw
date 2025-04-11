@@ -133,15 +133,16 @@ async fn main() {
 
     if let Some(self_url) = args.self_url {
         tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(5)).await;
             let mut interval = tokio::time::interval(Duration::from_secs(60));
             let url = format!("{self_url}{MAP_ROUTE}");
 
             loop {
-                interval.tick().await;
                 match client.get(url.as_str()).send().await {
                     Ok(_) => tracing::info!("ping successful"),
                     Err(_) => tracing::error!("ping failed"),
-                }
+                };
+                interval.tick().await;
             }
         });
     }
