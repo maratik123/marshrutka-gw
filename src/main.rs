@@ -4,7 +4,7 @@ use axum::handler::HandlerWithoutStateExt;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
-use axum::{BoxError, Router, ServiceExt, http};
+use axum::{BoxError, Router, http};
 use axum_client_ip::{ClientIp, ClientIpSource};
 use axum_extra::extract::Host;
 use axum_response_cache::CacheLayer;
