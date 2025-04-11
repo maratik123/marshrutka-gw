@@ -1,12 +1,11 @@
 use axum::body::{Body, Bytes};
-use axum::extract::State;
+use axum::extract::{ConnectInfo, State};
 use axum::handler::HandlerWithoutStateExt;
 use axum::http::header::Entry;
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use axum::{BoxError, Router, http};
-use axum_client_ip::{ClientIp, ClientIpSource};
 use axum_extra::extract::Host;
 use axum_response_cache::CacheLayer;
 use clap::Parser;
@@ -120,7 +119,6 @@ async fn main() {
         .route(MAP_ROUTE, get(stream_map_api_response))
         .layer(
             ServiceBuilder::new()
-                .layer(ClientIpSource::ConnectInfo.into_extension())
                 .layer(TraceLayer::new_for_http().on_body_chunk(
                     |chunk: &Bytes, _latency: Duration, _span: &Span| {
                         tracing::debug!("streaming {} bytes", chunk.len());
@@ -161,7 +159,7 @@ async fn main() {
 async fn stream_map_api_response(
     header_map: HeaderMap,
     State(client): State<reqwest::Client>,
-    ClientIp(ip): ClientIp,
+    ConnectInfo(ip): ConnectInfo<SocketAddr>,
 ) -> Response {
     tracing::info!(%ip, "request received");
     common_proxy_response(client.get(MAP_URL).send().await, header_map)
