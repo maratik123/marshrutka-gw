@@ -26,7 +26,6 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
-const LOCAL_HOST: &str = "https://maratik.fyi";
 const MAP_ROUTE: &str = "/api/chatwars/webview/map";
 
 static ALLOWED_ORIGINS: LazyLock<HashSet<&str>> = LazyLock::new(|| {
@@ -57,6 +56,10 @@ struct Args {
     /// (see https://letsencrypt.org/docs/staging-environment/)
     #[clap(long)]
     prod: bool,
+
+    /// Self url for pinger
+    #[clap(long)]
+    self_url: Option<String>,
 }
 
 #[tokio::main]
@@ -112,18 +115,20 @@ async fn main() {
         )
         .with_state(client.clone());
 
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(60));
-        let url = format!("{LOCAL_HOST}{MAP_ROUTE}");
+    if let Some(self_url) = args.self_url {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60));
+            let url = format!("{self_url}{MAP_ROUTE}");
 
-        loop {
-            interval.tick().await;
-            match client.get(url.as_str()).send().await {
-                Ok(_) => tracing::info!("ping successful"),
-                Err(_) => tracing::error!("ping failed"),
+            loop {
+                interval.tick().await;
+                match client.get(url.as_str()).send().await {
+                    Ok(_) => tracing::info!("ping successful"),
+                    Err(_) => tracing::error!("ping failed"),
+                }
             }
-        }
-    });
+        });
+    }
 
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 443);
     axum_server::bind(addr)
