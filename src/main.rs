@@ -1,7 +1,8 @@
 use axum::body::{Body, Bytes};
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
-use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri};
+use axum::http::header::Entry;
+use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use axum::{BoxError, Router, http};
@@ -35,6 +36,25 @@ static ALLOWED_ORIGINS: LazyLock<HashSet<&str>> = LazyLock::new(|| {
         "http://[::1]:8080",
         "http://localhost:8080",
         "http://localhost.:8080",
+    ])
+});
+
+const X_CACHE_AGE: HeaderName = HeaderName::from_static("x-cache-age");
+
+static ALLOWED_RESPONSE_HEADERS: LazyLock<HashSet<HeaderName>> = LazyLock::new(|| {
+    use http::header::*;
+    HashSet::from([
+        CONNECTION,
+        CONTENT_ENCODING,
+        CONTENT_TYPE,
+        DATE,
+        SERVER,
+        STRICT_TRANSPORT_SECURITY,
+        TRANSFER_ENCODING,
+        VARY,
+        X_CACHE_AGE,
+        X_CONTENT_TYPE_OPTIONS,
+        X_FRAME_OPTIONS,
     ])
 });
 
@@ -151,7 +171,7 @@ fn common_proxy_response(
     response: Result<reqwest::Response, reqwest::Error>,
     header_map: HeaderMap,
 ) -> Response {
-    let map_api_response = match response {
+    let mut map_api_response = match response {
         Ok(res) => res,
         Err(err) => {
             tracing::error!(%err, "request failed");
@@ -161,8 +181,26 @@ fn common_proxy_response(
 
     let mut response_builder = Response::builder().status(map_api_response.status());
     if let Some(headers) = response_builder.headers_mut() {
-        *headers = map_api_response.headers().clone();
-        headers.remove(http::header::COOKIE);
+        headers.reserve(map_api_response.headers().len().saturating_add(1));
+        let mut it = map_api_response.headers_mut().drain().peekable();
+        while let Some((Some(entry_name), entry_value)) = it.next() {
+            if !ALLOWED_RESPONSE_HEADERS.contains(&entry_name) {
+                while let Some((None, _)) = it.peek() {
+                    it.next();
+                }
+                continue;
+            }
+            let mut occupied_entry = match headers.entry(entry_name) {
+                Entry::Occupied(mut entry) => {
+                    entry.append(entry_value);
+                    entry
+                }
+                Entry::Vacant(entry) => entry.insert_entry(entry_value),
+            };
+            while let Some((None, _)) = it.peek() {
+                occupied_entry.append(it.next().unwrap().1);
+            }
+        }
         if let Some(origin_value) = header_map
             .get_all(http::header::ORIGIN)
             .into_iter()
