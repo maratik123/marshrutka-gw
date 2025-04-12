@@ -123,12 +123,12 @@ async fn main() {
                 .add_response_headers()
                 .use_stale_on_failure(),
         )
+        .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http().on_body_chunk(
             |chunk: &Bytes, _latency: Duration, _span: &Span| {
                 tracing::debug!("streaming {} bytes", chunk.len());
             },
         ))
-        .layer(CompressionLayer::new())
         .with_state(client.clone());
 
     if let Some(self_url) = args.self_url {
