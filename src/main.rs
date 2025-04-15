@@ -9,6 +9,7 @@ use axum::{BoxError, Router, http};
 use axum_extra::extract::Host;
 use axum_response_cache::CacheLayer;
 use clap::Parser;
+use mimalloc::MiMalloc;
 use rustls_acme::AcmeConfig;
 use rustls_acme::caches::DirCache;
 use std::collections::HashSet;
@@ -24,6 +25,9 @@ use tower_http::trace::TraceLayer;
 use tracing::Span;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
 const MAP_ROUTE: &str = "/api/chatwars/webview/map";
