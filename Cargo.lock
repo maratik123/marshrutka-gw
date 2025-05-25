@@ -1452,9 +1452,9 @@ dependencies = [
 
 [[package]]
 name = "libtcmalloc-sys"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd676f544c4a0bee5153202b32e574bed28ab0cdbccdf934ef5af617ad9b781f"
+checksum = "7f350a4417cf9a53e7231463f520142954a8a11e487afa6a0cf8db9d8119cd4b"
 dependencies = [
  "cc",
  "libc",
@@ -2333,9 +2333,9 @@ dependencies = [
 
 [[package]]
 name = "tcmalloc-better"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff8554793093f7f3ad140cc5f438ac06366df37acc5617b028959fd29f1c9630"
+checksum = "0fd741482770239f7461f271eb223e5d6d5cb52a24c020404da92db32d07394c"
 dependencies = [
  "libtcmalloc-sys",
 ]
