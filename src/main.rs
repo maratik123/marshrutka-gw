@@ -9,7 +9,6 @@ use axum::{BoxError, Router, http};
 use axum_extra::extract::Host;
 use axum_response_cache::CacheLayer;
 use clap::Parser;
-use mimalloc::MiMalloc;
 use rustls_acme::AcmeConfig;
 use rustls_acme::caches::DirCache;
 use std::collections::HashSet;
@@ -17,6 +16,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::time::Duration;
+use tcmalloc_better::TCMalloc;
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
 use tower_http::compression::CompressionLayer;
@@ -27,7 +27,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+static GLOBAL: TCMalloc = TCMalloc;
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
 const MAP_ROUTE: &str = "/api/chatwars/webview/map";
@@ -216,7 +216,7 @@ fn common_proxy_response(
     }
     response_builder
         .body(Body::from_stream(map_api_response.bytes_stream()))
-        // This unwrap is fine because the body is empty here
+        // This `unwrap()` is fine because the body is empty here
         .unwrap()
 }
 

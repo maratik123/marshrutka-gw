@@ -6,10 +6,10 @@ edition = "2024"
 [dependencies]
 axum = { version = "0.8", features = ["http2", "macros"] }
 axum-extra = "0.10"
-axum-response-cache = "0.2"
+axum-response-cache = "0.3"
 axum-server = { version = "0.7", features = ["tls-rustls"] }
 clap = { version = "4", features = ["derive"] }
-mimalloc = { version = "0.1", features = ["secure"] }
+tcmalloc-better = "0.1"
 reqwest = { version = "0.12", features = [
     "gzip",
     "brotli",
