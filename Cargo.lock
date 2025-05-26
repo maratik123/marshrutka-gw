@@ -1460,6 +1460,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libmimalloc-sys"
+version = "0.1.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec9d6fac27761dabcd4ee73571cdb06b7022dc99089acbe5435691edffaac0f4"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "libtcmalloc-sys"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1517,6 +1527,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
 
 [[package]]
+name = "malloc-best-effort"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6b88e8c7892d089dadfb1e32619fea9ac02c82bc8d6d7afaad89df22b0d821e"
+dependencies = [
+ "document-features",
+ "mimalloc",
+ "tcmalloc-better",
+]
+
+[[package]]
 name = "marshrutka-gw"
 version = "0.1.0"
 dependencies = [
@@ -1525,9 +1546,9 @@ dependencies = [
  "axum-response-cache",
  "axum-server",
  "clap",
+ "malloc-best-effort",
  "reqwest",
  "rustls-acme",
- "tcmalloc-better",
  "tokio",
  "tokio-stream",
  "tower-http",
@@ -1555,6 +1576,15 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "mimalloc"
+version = "0.1.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "995942f432bbb4822a7e9c3faa87a695185b0d09273ba85f097b54f4e458f2af"
+dependencies = [
+ "libmimalloc-sys",
+]
 
 [[package]]
 name = "mime"
@@ -2309,9 +2339,9 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 
 [[package]]
 name = "socket2"
-version = "0.5.9"
+version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f5fd57c80058a56cf5c777ab8a126398ece8e442983605d280a44ce79d0edef"
+checksum = "e22376abed350d73dd1cd119b57ffccad95b4e585a7cda43e286245ce23c0678"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
@@ -2368,9 +2398,9 @@ dependencies = [
 
 [[package]]
 name = "tcmalloc-better"
-version = "0.1.7"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3644fd57a2fb79cdacf063051a75263893e67b43dd51a072866ccb44e9c70c4"
+checksum = "00a06332be41fc22397e44ec1e93ea3e0a73206b19da1b4f38d274093d0916ed"
 dependencies = [
  "document-features",
  "libtcmalloc-sys",

@@ -9,6 +9,7 @@ use axum::{BoxError, Router, http};
 use axum_extra::extract::Host;
 use axum_response_cache::CacheLayer;
 use clap::Parser;
+use malloc_best_effort::BEMalloc;
 use rustls_acme::AcmeConfig;
 use rustls_acme::caches::DirCache;
 use std::collections::HashSet;
@@ -16,7 +17,6 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::time::Duration;
-use tcmalloc_better::TCMalloc;
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
 use tower_http::compression::CompressionLayer;
@@ -27,7 +27,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[global_allocator]
-static GLOBAL: TCMalloc = TCMalloc;
+static GLOBAL: BEMalloc = BEMalloc::new();
 
 const MAP_URL: &str = "https://api.chatwars.me/webview/map";
 const MAP_ROUTE: &str = "/api/chatwars/webview/map";
@@ -85,8 +85,9 @@ struct Args {
     self_url: Option<String>,
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    BEMalloc::init();
+
     let args = Args::parse();
 
     tracing_subscriber::registry()
@@ -98,6 +99,14 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(program(args));
+}
+
+async fn program(args: Args) {
     tokio::spawn(redirect_http_to_https());
 
     let client = reqwest::Client::new();
